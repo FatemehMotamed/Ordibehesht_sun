@@ -1,5 +1,6 @@
 package com.poulstar.my_ordibehesht;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,9 +17,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.NumberPicker;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothState;
+import app.akexorcist.bluetotohspp.library.DeviceList;
 
 import static app.akexorcist.bluetotohspp.library.BluetoothState.REQUEST_ENABLE_BT;
 
@@ -30,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     TextView fan;
     TextView light;
     BluetoothSPP bt;
+    TextView result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +51,26 @@ public class MainActivity extends AppCompatActivity {
 
         fan_picker = findViewById(R.id.fan);
         light_picker = findViewById(R.id.light);
+
+        result= findViewById(R.id.textStatus);
+
+
+        bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
+            @Override
+            public void onDeviceConnected(String name, String address) {
+                result.setText("Connect to "+name);
+            }
+
+            @Override
+            public void onDeviceDisconnected() {
+                result.setText("Disconnected");
+            }
+
+            @Override
+            public void onDeviceConnectionFailed() {
+                result.setText("Connection Failed");
+            }
+        });
 
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -77,6 +101,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
+            if (resultCode == Activity.RESULT_OK)
+                bt.connect(data);
+        } else if (requestCode == REQUEST_ENABLE_BT) {
+            if (resultCode == Activity.RESULT_OK) {
+                bt.setupService();
+                bt.startService(BluetoothState.DEVICE_ANDROID);
+
+            } else {
+                Toast.makeText(this, "Bluetooth device not exist", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -86,15 +126,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.device_list) {
+            bt.setDeviceTarget(BluetoothState.DEVICE_OTHER);
+            Intent intent = new Intent(getApplicationContext(), DeviceList.class);
+            startActivityForResult(intent, BluetoothState.REQUEST_CONNECT_DEVICE);
             return true;
         }
+
+
 
         return super.onOptionsItemSelected(item);
     }
